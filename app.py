@@ -9,11 +9,11 @@ def home():
 @app.route('/report', methods=['POST'])
 def report():
     location = request.form['location']
-    # Simulated air quality data for demonstration
-    air_quality = "Moderate"  # This would be replaced with real data from an API
-    recommendations = "Limit outdoor activities."  # This would be dynamic based on the air quality
-
+    air_quality = "Moderate"  # Placeholder for real data
+    recommendations = "Limit outdoor activities."  # Placeholder for real advice
     return render_template('report.html', location=location, air_quality=air_quality, recommendations=recommendations)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
