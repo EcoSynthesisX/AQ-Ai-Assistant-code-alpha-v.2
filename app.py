@@ -21,7 +21,7 @@ def get_lat_lon(location_name):
 def get_air_quality(lat, lon):
     """Fetches air quality data based on latitude and longitude. Adjust this function based on the real air quality API you're using."""
     # Hypothetical air quality API endpoint; replace with the actual one you plan to use
-    air_quality_url = f"https://airquality.googleapis.com/v1/currentConditions:lookup?key={google_maps_api_key}""
+    air_quality_url = f"https://airquality.googleapis.com/v1/currentConditions:lookup?key={google_maps_api_key}"
     response = requests.get(air_quality_url)
     if response.status_code == 200:
         # Adjust the parsing based on the actual response structure of the air quality API
