@@ -4,38 +4,49 @@ import os
 
 app = Flask(__name__)
 
-# Assuming you have set these environment variables in your hosting service
-google_api_key = os.environ.get('GOOGLE_API_KEY')
+# API keys set as environment variables for security
+google_maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY')
 openai_api_key = os.environ.get('OPENAI_API_KEY')
 
-def get_air_quality(lat, lon):
-    # Adjust the endpoint URL and parameters according to the Google Air Quality API documentation
-    url = f"https://maps.googleapis.com/maps/api/place/airquality/json?location={lat},{lon}&key={google_api_key}"
+def get_lat_lon(location_name):
+    """Converts location name to latitude and longitude using Google Maps Geocoding API."""
+    url = f"https://maps.googleapis.com/maps/api/geocode/json?address={location_name}&key={google_maps_api_key}"
     response = requests.get(url)
-    if response.status_code == 200:
-        # Make sure to adjust the path according to the actual response structure
-        aqi_data = response.json()
-        return aqi_data
+    if response.status_code == 200 and response.json()['results']:
+        result = response.json()['results'][0]['geometry']['location']
+        return result['lat'], result['lng']
     else:
-        print(f"Failed to fetch AQI: {response.status_code}, {response.text}")
-        return None
+        return None, None
 
-def generate_advice_with_chatgpt(aqi_data):
-    prompt = f"The current Air Quality Index (AQI) is {aqi_data}. What precautions should people take?"
+def get_air_quality(lat, lon):
+    """Fetches air quality data based on latitude and longitude. Adjust this function based on the real air quality API you're using."""
+    # Hypothetical air quality API endpoint; replace with the actual one you plan to use
+    air_quality_url = f"https://airquality.googleapis.com/v1/currentConditions:lookup?key={google_maps_api_key}""
+    response = requests.get(air_quality_url)
+    if response.status_code == 200:
+        # Adjust the parsing based on the actual response structure of the air quality API
+        aqi_data = response.json()  # Example; adjust accordingly
+        return aqi_data
+    return "Data not available"
+
+def generate_advice_with_chatgpt(location_name, aqi_data):
+    """Generates advice using OpenAI's ChatGPT-4 based on air quality data."""
+    prompt = f"Given the air quality data {aqi_data} for {location_name}, what advice would you offer?"
+    
     headers = {'Authorization': f'Bearer {openai_api_key}'}
     data = {
-        "model": "text-davinci-003",
+        "model": "gpt-4",  # Specify using GPT-4
         "prompt": prompt,
         "temperature": 0.7,
         "max_tokens": 150
     }
+    
     response = requests.post('https://api.openai.com/v1/completions', headers=headers, json=data)
     if response.status_code == 200:
         advice = response.json()["choices"][0]["text"].strip()
         return advice
     else:
-        print(f"Failed to generate advice: {response.status_code}, {response.text}")
-        return "Sorry, I am unable to provide recommendations at the moment."
+        return "Unable to generate recommendations at this time."
 
 @app.route('/')
 def home():
@@ -43,10 +54,13 @@ def home():
 
 @app.route('/get-advice', methods=['POST'])
 def get_advice():
-    lat = request.form.get('latitude')
-    lon = request.form.get('longitude')
-    aqi_data = get_air_quality(lat, lon)
-    advice = generate_advice_with_chatgpt(str(aqi_data))
+    location_name = request.form.get('location')
+    lat, lon = get_lat_lon(location_name)
+    if lat is None or lon is None:
+        advice = "Could not find the specified location."
+    else:
+        aqi_data = get_air_quality(lat, lon)
+        advice = generate_advice_with_chatgpt(location_name, aqi_data)
     return jsonify({'advice': advice})
 
 if __name__ == '__main__':
